@@ -21,12 +21,20 @@ try:
     trying = "pathlib"
     __dependencies__.append(trying)
     from pathlib import Path, PurePath
-    
+
     trying = "datetime.datetime"
     __dependencies__.append(trying)
     from datetime import datetime
-    
+
     # TODO - Add requirements
+
+    trying = "winreg"
+    __dependencies__.append(trying)
+    from winreg import OpenKey, QueryValueEx, HKEY_LOCAL_MACHINE
+
+    trying = "toml"
+    __dependencies__.append(trying)
+    import toml
 
 except ImportError:
     errstat = True
@@ -42,7 +50,8 @@ finally:
     logging.basicConfig(
         filename=Path(
             PurePath(sys.argv[0]).parent,
-            f"{PurePath(sys.argv[0]).stem}-{datetime.now().strftime('%Y_%m_%d-%H_%M_%S')}.log",),
+            f"{PurePath(sys.argv[0]).stem}-{datetime.now().strftime('%Y_%m_%d-%H_%M_%S')}.log",
+        ),
         format="%(asctime)s-[%(levelname)s]-(%(filename)s)-<%(funcName)s>-#%(lineno)d#-%(message)s",
         datefmt="%Y.%m.%d %H:%M:%S",
         filemode="w",
@@ -120,15 +129,20 @@ logger.info(f"\n{appcredits}\n")
 
 # endregion Header Block ######################################################
 
-
-# region - Functions here
-def MyFunction(variable):
-    pass
-
-
-# endregion - End of functions
-
+regcheck = toml.load(
+    Path(
+        PurePath(sys.argv[0]).parent,
+        "keys.toml",
+    )
+)
 
 if __name__ == "__main__":
-
-    MyFunction("Values")
+    for check in regcheck["MaxLocksPerFile"]:
+        try:
+            with OpenKey(HKEY_LOCAL_MACHINE, check) as key:
+                myval = QueryValueEx(key, "MaxLocksPerFile")
+                logger.info(f"FOUND:\t{myval[0]}\t{hex(myval[0])}\t{check}")
+        except WindowsError as e:
+            logger.debug(e)
+        except Exception as e:
+            logger.exception(e)
